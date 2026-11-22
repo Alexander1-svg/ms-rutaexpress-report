@@ -18,4 +18,16 @@ public record ShipmentEventV1(
         @Size(max = 100) String correlationId
 ) {
     public static final String SCHEMA_VERSION = "1.0";
+
+    public ShipmentEventV1(
+            String schemaVersion,
+            String eventId,
+            String eventType,
+            Instant occurredAt,
+            String shipmentId,
+            String status,
+            String correlationId
+    ) {
+        this(schemaVersion, eventId, eventType, occurredAt, shipmentId, "N/A", "N/A", status, correlationId);
+    }
 }
