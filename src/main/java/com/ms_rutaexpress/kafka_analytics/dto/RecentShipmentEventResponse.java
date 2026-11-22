@@ -11,4 +11,13 @@ public record RecentShipmentEventResponse(
         Instant occurredAt,
         Instant processedAt
 ) {
+    public RecentShipmentEventResponse(
+            String eventId,
+            String shipmentId,
+            String status,
+            Instant occurredAt,
+            Instant processedAt
+    ) {
+        this(eventId, shipmentId, null, null, status, occurredAt, processedAt);
+    }
 }
