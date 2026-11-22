@@ -12,9 +12,10 @@ public record ShipmentEventV1(
         @NotBlank @Size(max = 100) String eventType,
         @NotNull Instant occurredAt,
         @NotBlank @Size(max = 100) String shipmentId,
+        @NotBlank @Size(max = 100) String clienteId,
+        @NotBlank @Size(max = 100) String trackingNumber,
         @NotBlank @Size(max = 60) String status,
         @Size(max = 100) String correlationId
 ) {
     public static final String SCHEMA_VERSION = "1.0";
 }
-

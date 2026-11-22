@@ -41,9 +41,11 @@ public class ShipmentEventConsumer {
 
         ShipmentAnalyticsProcessor.ProcessingResult result = processor.process(event);
         log.info(
-                "Evento de envío procesado: eventId={}, shipmentId={}, status={}, result={}, partition={}, offset={}",
+                "Evento de envío procesado: eventId={}, shipmentId={}, clienteId={}, trackingNumber={}, status={}, result={}, partition={}, offset={}",
                 event.eventId(),
                 event.shipmentId(),
+                event.clienteId(),
+                event.trackingNumber(),
                 event.status(),
                 result,
                 record.partition(),
@@ -62,4 +64,3 @@ public class ShipmentEventConsumer {
         }
     }
 }
-

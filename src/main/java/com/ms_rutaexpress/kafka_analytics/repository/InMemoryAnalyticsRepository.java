@@ -43,6 +43,8 @@ public class InMemoryAnalyticsRepository {
             recentEvents.addFirst(new RecentShipmentEventResponse(
                     event.sourceEventId(),
                     event.shipmentId(),
+                    event.clienteId(),
+                    event.trackingNumber(),
                     event.status(),
                     event.occurredAt(),
                     event.processedAt()
@@ -76,4 +78,3 @@ public class InMemoryAnalyticsRepository {
         );
     }
 }
-

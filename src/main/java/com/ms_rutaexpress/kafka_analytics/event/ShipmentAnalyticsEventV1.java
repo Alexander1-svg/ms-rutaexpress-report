@@ -7,6 +7,8 @@ public record ShipmentAnalyticsEventV1(
         String eventId,
         String sourceEventId,
         String shipmentId,
+        String clienteId,
+        String trackingNumber,
         String metricType,
         String status,
         Instant occurredAt,
@@ -16,4 +18,3 @@ public record ShipmentAnalyticsEventV1(
     public static final String SCHEMA_VERSION = "1.0";
     public static final String METRIC_TYPE = "SHIPMENT_STATUS_OBSERVED";
 }
-
