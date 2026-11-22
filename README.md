@@ -1,5 +1,7 @@
 # ms-rutaexpress-kafka-analytics
 
+> Repositorio `ms-rutaexpress-report`. La aplicación se llama `kafka-analytics`.
+
 Microservicio de RutaExpress que consume eventos de envíos desde Kafka, valida y deduplica los mensajes, publica eventos analíticos y expone estadísticas mediante una API REST.
 
 ## Tecnologías
@@ -57,7 +59,7 @@ La key Kafka de los eventos de entrada y salida es `shipmentId`. El productor an
 
 Para una conexión administrada, las propiedades adicionales de Spring Kafka se pueden proporcionar como variables externas, por ejemplo `SPRING_KAFKA_PROPERTIES_SASL_MECHANISM` y `SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG`. Las credenciales nunca deben guardarse en el repositorio.
 
-La infraestructura debe crear los topics de entrada, salida y DLT. Las DLT deben tener al menos las mismas particiones que sus topics de origen. Este microservicio no crea ni administra topics.
+Los topics de entrada, salida y DLT los crea `kafka-init-topics` en el compose de `ms-rutaexpress-audit`, con 3 particiones cada uno (la DLT tiene las mismas particiones que su topic de origen). Este microservicio no crea ni administra topics.
 
 ## API REST
 
@@ -72,13 +74,35 @@ Ejemplo:
 Invoke-RestMethod http://localhost:8091/api/v1/analytics/summary
 ```
 
+## Ejecución con Docker Compose
+
+La arquitectura Kafka (Zookeeper, 3 brokers, tópicos y Kafka-UI) está en el repositorio `ms-rutaexpress-audit`, porque ese microservicio es el administrador de Kafka.
+
+```powershell
+# En ms-rutaexpress-audit
+docker compose up -d
+docker compose -f docker-compose.kafka-ui.yml up -d   # Kafka-UI en http://localhost:8089
+
+# En este repositorio
+docker compose up -d --build
+Invoke-RestMethod http://localhost:8091/api/v1/analytics/summary
+```
+
+### Probar el flujo completo desde Kafka-UI
+
+1. Abrir http://localhost:8089, entrar a **Topics → rutaexpress.shipments.events.v1 → Produce Message**.
+2. Key: `ENV-100045`. Value: el JSON de `ShipmentEventV1` de [docs/EVENT_CONTRACTS.md](docs/EVENT_CONTRACTS.md).
+3. Revisar `GET /api/v1/analytics/summary`: el evento aparece procesado.
+4. En `rutaexpress.shipments.analytics.v1` aparece el evento analítico publicado por este servicio.
+5. Publicar un value inválido, por ejemplo `{"hola":1}`: no se reintenta, llega a `rutaexpress.shipments.events.v1.DLT` y el log muestra `Enrutando evento a DLT`.
+
 ## Ejecución desde IntelliJ IDEA
 
-1. Abrir `C:\Users\alexa\OneDrive\Documentos\kafka\kafka-analytics\pom.xml` como proyecto Maven.
+1. Abrir el `pom.xml` de este repositorio como proyecto Maven.
 2. Configurar el Project SDK en Java 21.
 3. Esperar a que IntelliJ importe las dependencias Maven.
-4. Levantar la infraestructura Kafka externa y crear los topics requeridos.
-5. Definir las variables de entorno necesarias en la configuración de ejecución.
+4. Levantar la infraestructura con `docker compose up -d` en `ms-rutaexpress-audit`.
+5. Definir `KAFKA_BOOTSTRAP_SERVERS=localhost:9092,localhost:9093,localhost:9094` en la configuración de ejecución.
 6. Ejecutar `KafkaAnalyticsApplication`.
 7. Consultar la API en `http://localhost:8091/api/v1/analytics/summary`.
 

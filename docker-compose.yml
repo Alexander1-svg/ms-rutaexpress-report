@@ -1,0 +1,29 @@
+# Microservicio kafka-analytics en contenedor.
+#
+# Requiere la arquitectura Kafka del repositorio ms-rutaexpress-audit (kafka-admin)
+# levantada antes, porque ese compose crea la red "rutaexpress-kafka" y los tópicos:
+#   (en ms-rutaexpress-audit)  docker compose up -d
+#   (en este repositorio)      docker compose up -d --build
+#
+# API: http://localhost:8091/api/v1/analytics/summary
+
+services:
+  kafka-analytics:
+    build: .
+    container_name: rutaexpress-kafka-analytics
+    restart: unless-stopped
+    environment:
+      # Mismo host que Kafka: nombres internos de la red. Ver .env.example para otros casos.
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka-1:29092,kafka-2:29092,kafka-3:29092}
+      KAFKA_TOPIC_SHIPMENTS: rutaexpress.shipments.events.v1
+      KAFKA_TOPIC_ANALYTICS: rutaexpress.shipments.analytics.v1
+      KAFKA_DLT_SUFFIX: .DLT
+      KAFKA_CONSUMER_GROUP: rutaexpress-kafka-analytics-v1
+    ports:
+      - "${KAFKA_ANALYTICS_BIND_ADDRESS:-127.0.0.1}:8091:8091"
+    networks: [kafka]
+
+networks:
+  kafka:
+    name: rutaexpress-kafka
+    external: true
