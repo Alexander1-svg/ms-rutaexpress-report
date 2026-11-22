@@ -41,6 +41,8 @@ public class ShipmentAnalyticsProcessor {
                 source.eventId() + ":shipment-status-observed:v1",
                 source.eventId(),
                 source.shipmentId(),
+                source.clienteId(),
+                source.trackingNumber(),
                 ShipmentAnalyticsEventV1.METRIC_TYPE,
                 source.status(),
                 source.occurredAt(),
@@ -63,4 +65,3 @@ public class ShipmentAnalyticsProcessor {
         DUPLICATE
     }
 }
-
