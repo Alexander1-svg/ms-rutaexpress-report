@@ -3,7 +3,7 @@ package com.ms_rutaexpress.kafka_analytics.service;
 import com.ms_rutaexpress.kafka_analytics.event.ShipmentAnalyticsEventV1;
 import com.ms_rutaexpress.kafka_analytics.event.ShipmentEventV1;
 import com.ms_rutaexpress.kafka_analytics.producer.ShipmentAnalyticsProducer;
-import com.ms_rutaexpress.kafka_analytics.repository.InMemoryAnalyticsRepository;
+import com.ms_rutaexpress.kafka_analytics.repository.AnalyticsStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,12 +16,12 @@ public class ShipmentAnalyticsProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(ShipmentAnalyticsProcessor.class);
 
-    private final InMemoryAnalyticsRepository repository;
+    private final AnalyticsStore repository;
     private final ShipmentAnalyticsProducer producer;
     private final Clock clock;
 
     public ShipmentAnalyticsProcessor(
-            InMemoryAnalyticsRepository repository,
+            AnalyticsStore repository,
             ShipmentAnalyticsProducer producer,
             Clock clock
     ) {

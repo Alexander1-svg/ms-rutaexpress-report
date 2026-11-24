@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: kafka-analytics
+  # Oracle Autonomous Database de RutaExpress (misma conexión que Shipments, con wallet).
+  # Ejemplo: DB_URL=jdbc:oracle:thin:@rutaexpress_medium?TNS_ADMIN=/opt/oracle/wallet
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    # update: Hibernate crea la tabla ANALYTICS_SHIPMENT_EVENTS si no existe (igual que Shipments).
+    # Si el DBA crea la tabla con docs/oracle/analytics_schema.sql, usar JPA_DDL_AUTO=validate.
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     properties:

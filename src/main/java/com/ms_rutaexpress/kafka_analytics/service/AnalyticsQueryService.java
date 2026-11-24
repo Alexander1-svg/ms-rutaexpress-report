@@ -3,7 +3,7 @@ package com.ms_rutaexpress.kafka_analytics.service;
 import com.ms_rutaexpress.kafka_analytics.dto.AnalyticsSummaryResponse;
 import com.ms_rutaexpress.kafka_analytics.dto.RecentShipmentEventResponse;
 import com.ms_rutaexpress.kafka_analytics.dto.StatusAnalyticsResponse;
-import com.ms_rutaexpress.kafka_analytics.repository.InMemoryAnalyticsRepository;
+import com.ms_rutaexpress.kafka_analytics.repository.AnalyticsStore;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,23 +11,21 @@ import java.util.List;
 @Service
 public class AnalyticsQueryService {
 
-    private final InMemoryAnalyticsRepository repository;
+    private final AnalyticsStore store;
 
-    public AnalyticsQueryService(InMemoryAnalyticsRepository repository) {
-        this.repository = repository;
+    public AnalyticsQueryService(AnalyticsStore store) {
+        this.store = store;
     }
 
     public AnalyticsSummaryResponse summary() {
-        return repository.snapshot();
+        return store.snapshot();
     }
 
     public StatusAnalyticsResponse statuses() {
-        return new StatusAnalyticsResponse(repository.snapshot().byStatus());
+        return new StatusAnalyticsResponse(store.byStatus());
     }
 
     public List<RecentShipmentEventResponse> recent(int limit) {
-        List<RecentShipmentEventResponse> events = repository.snapshot().recentEvents();
-        return events.subList(0, Math.min(limit, events.size()));
+        return store.recent(limit);
     }
 }
-

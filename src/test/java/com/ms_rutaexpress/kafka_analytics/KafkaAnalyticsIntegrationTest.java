@@ -2,7 +2,7 @@ package com.ms_rutaexpress.kafka_analytics;
 
 import com.ms_rutaexpress.kafka_analytics.event.ShipmentAnalyticsEventV1;
 import com.ms_rutaexpress.kafka_analytics.event.ShipmentEventV1;
-import com.ms_rutaexpress.kafka_analytics.repository.InMemoryAnalyticsRepository;
+import com.ms_rutaexpress.kafka_analytics.repository.AnalyticsStore;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,13 @@ import static org.assertj.core.api.Assertions.assertThat;
         "app.kafka.topics.analytics=test.rutaexpress.analytics.v1",
         "app.kafka.consumer-group=test-rutaexpress-analytics-group",
         "app.kafka.retry-interval=10ms",
-        "app.kafka.retry-max-attempts=1"
+        "app.kafka.retry-max-attempts=1",
+        // Oracle se reemplaza por H2 en memoria durante las pruebas.
+        "spring.datasource.url=jdbc:h2:mem:analytics-integration;MODE=Oracle;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @EmbeddedKafka(
         partitions = 1,
@@ -55,7 +61,7 @@ class KafkaAnalyticsIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private InMemoryAnalyticsRepository repository;
+    private AnalyticsStore repository;
 
     @Test
     void processesValidEventDeduplicatesItAndRoutesInvalidJsonToDlt() throws Exception {

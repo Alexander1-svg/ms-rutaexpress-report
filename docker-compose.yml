@@ -5,6 +5,9 @@
 #   (en ms-rutaexpress-audit)  docker compose up -d
 #   (en este repositorio)      docker compose up -d --build
 #
+# Guarda las métricas en Oracle: necesita un .env con DB_URL, DB_USERNAME y DB_PASSWORD
+# (ver .env.example) y el wallet de Oracle extraído en ./wallet (ignorado por Git).
+#
 # API: http://localhost:8091/api/v1/analytics/summary
 
 services:
@@ -19,6 +22,14 @@ services:
       KAFKA_TOPIC_ANALYTICS: rutaexpress.shipments.analytics.v1
       KAFKA_DLT_SUFFIX: .DLT
       KAFKA_CONSUMER_GROUP: rutaexpress-kafka-analytics-v1
+      # Oracle (mismos valores que Shipments). Sin ellos el compose no arranca.
+      DB_URL: ${DB_URL:?Define DB_URL en el archivo .env}
+      DB_USERNAME: ${DB_USERNAME:?Define DB_USERNAME en el archivo .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+    volumes:
+      # Solo lectura. El contenedor corre como UID 10001: ver README, sección Oracle.
+      - ${ORACLE_WALLET_DIR:-./wallet}:/opt/oracle/wallet:ro
     ports:
       - "${KAFKA_ANALYTICS_BIND_ADDRESS:-127.0.0.1}:8091:8091"
     networks: [kafka]
