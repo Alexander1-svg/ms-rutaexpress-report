@@ -52,3 +52,4 @@ cwallet.sso
 ewallet*.p12
 tnsnames.ora
 sqlnet.ora
+*.zip

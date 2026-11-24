@@ -4,7 +4,8 @@ import com.ms_rutaexpress.kafka_analytics.config.KafkaAnalyticsProperties;
 import com.ms_rutaexpress.kafka_analytics.event.ShipmentAnalyticsEventV1;
 import com.ms_rutaexpress.kafka_analytics.event.ShipmentEventV1;
 import com.ms_rutaexpress.kafka_analytics.producer.ShipmentAnalyticsProducer;
-import com.ms_rutaexpress.kafka_analytics.repository.InMemoryAnalyticsRepository;
+import com.ms_rutaexpress.kafka_analytics.repository.AnalyticsStore;
+import com.ms_rutaexpress.kafka_analytics.repository.FakeShipmentAnalyticsRecordRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -23,7 +24,7 @@ import static org.mockito.Mockito.verify;
 class ShipmentAnalyticsProcessorTest {
 
     private final ShipmentAnalyticsProducer producer = mock(ShipmentAnalyticsProducer.class);
-    private final InMemoryAnalyticsRepository repository = repository();
+    private final AnalyticsStore repository = repository();
     private final Clock clock = Clock.fixed(Instant.parse("2026-11-15T20:31:00Z"), ZoneOffset.UTC);
     private final ShipmentAnalyticsProcessor processor = new ShipmentAnalyticsProcessor(repository, producer, clock);
 
@@ -65,8 +66,8 @@ class ShipmentAnalyticsProcessorTest {
         );
     }
 
-    private InMemoryAnalyticsRepository repository() {
-        return new InMemoryAnalyticsRepository(new KafkaAnalyticsProperties(
+    private AnalyticsStore repository() {
+        return new AnalyticsStore(new FakeShipmentAnalyticsRecordRepository(), new KafkaAnalyticsProperties(
                 new KafkaAnalyticsProperties.Topics("shipments", "analytics", ".DLT"),
                 "group", Duration.ofSeconds(5), Duration.ofSeconds(1), 2, 20
         ));

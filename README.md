@@ -9,6 +9,7 @@ Microservicio de RutaExpress que consume eventos de envíos desde Kafka, valida 
 - Java 21
 - Spring Boot 4.1.2
 - Spring for Apache Kafka
+- Spring Data JPA con Oracle Autonomous Database (H2 en las pruebas)
 - Maven Wrapper
 - Kafka embebido en modo KRaft para pruebas de integración
 
@@ -26,13 +27,37 @@ rutaexpress.shipments.events.v1
  ShipmentAnalyticsProcessor
        |              |
        v              v
- métricas RAM   rutaexpress.shipments.analytics.v1
+ Oracle         rutaexpress.shipments.analytics.v1
+ (ANALYTICS_SHIPMENT_EVENTS)
        |
        v
  GET /api/v1/analytics/*
 ```
 
-Los datos analíticos y los identificadores usados para deduplicación se mantienen en memoria. Se reinician al reiniciar la aplicación.
+Cada evento procesado se guarda como una fila en la tabla Oracle `ANALYTICS_SHIPMENT_EVENTS`, la misma base de datos de RutaExpress que usa Shipments. Los conteos por estado se calculan con `COUNT(*) ... GROUP BY STATUS`, así que **las métricas no se pierden al reiniciar el servicio** ni dependen de qué réplica responda. La clave primaria es el `eventId` del evento de origen, por lo que la deduplicación también es persistente.
+
+En memoria solo quedan los eventos que se están procesando en ese instante y el contador `duplicateEvents`, que es informativo y vuelve a 0 al reiniciar.
+
+## Oracle
+
+| Pieza | Archivo |
+| --- | --- |
+| Entidad | `entity/ShipmentAnalyticsRecord.java` → tabla `ANALYTICS_SHIPMENT_EVENTS` |
+| Repositorio | `repository/ShipmentAnalyticsRecordRepository.java` (Spring Data JPA) |
+| Lógica | `repository/AnalyticsStore.java` |
+| Propiedades | `spring.datasource.*` y `spring.jpa.*` en `application.yml` |
+| Script opcional | `docs/oracle/analytics_schema.sql` |
+
+La conexión es igual a la de Shipments: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` y el wallet de Oracle montado en `/opt/oracle/wallet`. Con `JPA_DDL_AUTO=update` (por defecto) Hibernate crea la tabla en el primer arranque; si el DBA la crea con el script, usar `JPA_DDL_AUTO=validate`.
+
+El wallet se extrae (no el ZIP) en `./wallet`, que está en `.gitignore` y nunca entra en la imagen Docker. El contenedor corre como UID 10001, así que en la EC2:
+
+```sh
+sudo chown -R 10001:10001 ./wallet
+sudo find ./wallet -type d -exec chmod 700 {} \;
+sudo find ./wallet -type f -exec chmod 400 {} \;
+chmod 600 .env
+```
 
 ## Contratos
 
@@ -83,7 +108,8 @@ La arquitectura Kafka (Zookeeper, 3 brokers, tópicos y Kafka-UI) está en el re
 docker compose up -d
 docker compose -f docker-compose.kafka-ui.yml up -d   # Kafka-UI en http://localhost:8089
 
-# En este repositorio
+# En este repositorio: primero copiar .env.example como .env con los datos de Oracle
+# y extraer el wallet en ./wallet
 docker compose up -d --build
 Invoke-RestMethod http://localhost:8091/api/v1/analytics/summary
 ```
@@ -102,7 +128,7 @@ Invoke-RestMethod http://localhost:8091/api/v1/analytics/summary
 2. Configurar el Project SDK en Java 21.
 3. Esperar a que IntelliJ importe las dependencias Maven.
 4. Levantar la infraestructura con `docker compose up -d` en `ms-rutaexpress-audit`.
-5. Definir `KAFKA_BOOTSTRAP_SERVERS=localhost:9092,localhost:9093,localhost:9094` en la configuración de ejecución.
+5. Definir en la configuración de ejecución `KAFKA_BOOTSTRAP_SERVERS=localhost:9092,localhost:9093,localhost:9094`, `DB_URL` (con `TNS_ADMIN` apuntando a la carpeta local del wallet), `DB_USERNAME` y `DB_PASSWORD`.
 6. Ejecutar `KafkaAnalyticsApplication`.
 7. Consultar la API en `http://localhost:8091/api/v1/analytics/summary`.
 
@@ -114,7 +140,7 @@ Desde IntelliJ se puede ejecutar el directorio `src/test/java` o cada clase indi
 .\mvnw.cmd clean verify
 ```
 
-Las pruebas no necesitan AWS ni un Kafka instalado. La integración inicia temporalmente un broker Kafka KRaft, comprueba el flujo completo y lo detiene al finalizar.
+Las pruebas no necesitan AWS, Oracle ni un Kafka instalado: usan H2 en memoria (modo Oracle) en lugar de Oracle, y la integración inicia temporalmente un broker Kafka KRaft, comprueba el flujo completo y lo detiene al finalizar. `ShipmentAnalyticsRecordRepositoryTest` verifica el mapeo JPA y las consultas reales; `AnalyticsStoreTest` comprueba que las métricas y la deduplicación sobreviven a un reinicio.
 
 ## Garantías y límites actuales
 
@@ -122,5 +148,6 @@ Las pruebas no necesitan AWS ni un Kafka instalado. La integración inicia tempo
 - Los offsets se confirman por registro después de que el listener termina correctamente.
 - Los mensajes inválidos no se reintentan; se enrutan a DLT.
 - Los fallos recuperables se reintentan antes de usar la DLT.
-- La deduplicación es segura entre hilos dentro de una única instancia, pero no persiste tras reinicios ni se comparte entre réplicas.
-- No se almacenan métricas en Oracle ni en otra base de datos.
+- La deduplicación es persistente: la clave primaria de Oracle impide registrar dos veces el mismo `eventId`, también entre réplicas.
+- El evento analítico se publica en Kafka antes de guardarse en Oracle. Si Oracle falla, el mensaje se reintenta y, agotados los reintentos, va a la DLT; al reintentar, el evento analítico puede publicarse dos veces con el mismo `eventId` (entrega al menos una vez).
+- Si Oracle no está disponible, el servicio no puede registrar métricas: los eventos terminan en la DLT y se pueden reprocesar después.
