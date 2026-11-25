@@ -18,7 +18,7 @@ spring:
       ddl-auto: ${JPA_DDL_AUTO:update}
     open-in-view: false
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:10.0.11.43:9092,10.0.11.43:9094,10.0.11.43:9095}
     properties:
       security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
     producer:
@@ -35,7 +35,7 @@ spring:
       auto-offset-reset: earliest
     listener:
       ack-mode: record
-      concurrency: ${KAFKA_LISTENER_CONCURRENCY:1}
+      concurrency: ${KAFKA_LISTENER_CONCURRENCY:3}
 
 app:
   kafka:
@@ -54,4 +54,3 @@ management:
     web:
       exposure:
         include: health,info
-
